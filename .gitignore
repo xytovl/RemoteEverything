@@ -1,0 +1,11 @@
+*.csproj
+*.sln
+*.userprefs
+*.zip
+*.swp
+
+Properties
+bin
+obj
+build
+package
