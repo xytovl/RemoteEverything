@@ -46,7 +46,7 @@ namespace RemoteEverything
 			}
 			else
 			{
-				httpServer.terminate();
+				httpServer.Terminate();
 				httpServer = null;
 				toolbarButton.SetTexture(inactiveTexture);
 			}

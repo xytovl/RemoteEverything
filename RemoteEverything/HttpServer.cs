@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Reflection;
 using UnityEngine;
 
 namespace RemoteEverything
@@ -7,57 +8,55 @@ namespace RemoteEverything
 	public class HttpServer
 	{
 
-		class HttpError : Exception
+		class HttpException: Exception
 		{
-			public int code;
-			public HttpError(int code)
+			public int _code;
+			public HttpException(int code)
 			{
-				this.code = code;
+				_code = code;
 			}
 		}
 
 		HttpListener listener;
-		
+
 		public HttpServer(ushort port)
 		{
 			listener = new HttpListener();
 			listener.Prefixes.Add(string.Format("http://*:{0}/", port));
 			listener.Start();
-			listener.BeginGetContext(chainRequests, null);
+			listener.BeginGetContext(ChainRequests, null);
 		}
 
-		public void terminate()
+		public void Terminate()
 		{
 			listener.Close();
 		}
 
-		void chainRequests(IAsyncResult result)
+		void ChainRequests(IAsyncResult result)
 		{
 			HttpListenerContext ctx = null;
 			try
 			{
 				ctx = listener.EndGetContext(result);
-				handleRequest(ctx);
+				HandleRequest(ctx);
 				ctx.Response.Close();
 			}
 			catch (Exception e)
 			{
 				if (ctx != null)
 				{
-					var httpError = e as HttpError;
-					if (e != null)
-					{
-						ctx.Response.StatusCode = httpError.code;
-					}
+					var httpError = e as HttpException;
+					if (httpError != null)
+						ctx.Response.StatusCode = httpError._code;
 					ctx.Response.Close();
 				}
 				Debug.LogException(e);
 			}
 			if (listener.IsListening)
-				listener.BeginGetContext(chainRequests, null);
+				listener.BeginGetContext(ChainRequests, null);
 		}
 
-		void handleRequest(HttpListenerContext ctx)
+		void HandleRequest(HttpListenerContext ctx)
 		{
 			#if DEBUG
 			Debug.Log("Handling request " + ctx.Request.RawUrl);
@@ -66,7 +65,7 @@ namespace RemoteEverything
 			var uri = ctx.Request.Url;
 
 			if (uri == null)
-				throw new HttpError(400);
+				throw new HttpException(400);
 
 			#if DEBUG
 			Debug.Log("Path: " + uri.AbsolutePath);
@@ -78,35 +77,115 @@ namespace RemoteEverything
 			switch(uri.AbsolutePath)
 			{
 			case "/list":
-				handleListRequest(outputStream);
+				HandleListRequest(outputStream);
 				break;
 			default:
-				throw new HttpError(404);
+				throw new HttpException(404);
 			}
 			outputStream.Flush();
-			Debug.Log(string.Format("content length: {0}", memStream.Length));
 			ctx.Response.ContentLength64 = memStream.Length;
 			memStream.WriteTo(ctx.Response.OutputStream);
 		}
 
-		void handleListRequest(System.IO.TextWriter result)
+		void HandleListRequest(System.IO.TextWriter result)
 		{
 			#if DEBUG
 			Debug.Log("Processing list request");
 			#endif
-			result.WriteLine("Content list:");
-			RemotableContainer.instance.walk(obj => printObjectDescription(obj, result));
+			result.Write("{\"objects\":[");
+			RemotableContainer.instance.walk(obj => PrintObjectDescription(obj, result));
+			result.Write("]}");
 		}
 
-		static void printObjectDescription(object obj, System.IO.TextWriter stream)
+		static void PrintObjectDescription(object obj, System.IO.TextWriter stream)
 		{
+			stream.Write("{\"type\":\"");
+			stream.Write(JsonEscape(obj.GetType().FullName));
+			stream.Write("\",\"content\":{");
 			var content = RemotableContent.get(obj.GetType());
+
+			bool first = true;
 
 			foreach (var kv in content.exported)
 			{
-				stream.Write(kv.Key);
+				if (first)
+					first = false;
+				else
+					stream.Write(",");
+				PrintMember(kv.Value, obj, stream);
 			}
+			stream.WriteLine("}");
 
+		}
+
+		static void PrintMember(MemberInfo info, object obj, System.IO.TextWriter stream)
+		{
+			stream.Write('"');
+			stream.Write(JsonEscape(info.Name));
+			stream.Write("\":{\"type\":");
+			if (info is FieldInfo)
+				stream.Write("field");
+			else if (info is PropertyInfo)
+				stream.Write("property");
+			else if (info is MethodInfo)
+				stream.Write("method");
+			else
+				stream.Write("unknown");
+			stream.Write("\"");
+			if (IsPrintable(info))
+			{
+				stream.Write("\"value\":");
+				PrintValue(info, obj, stream);
+			}
+			stream.Write("}");
+		}
+
+		static bool IsPrintable(MemberInfo info)
+		{
+			var fieldInfo = info as FieldInfo;
+			if (fieldInfo != null)
+			{
+				var type = fieldInfo.FieldType;
+				return type == typeof(string)
+					|| type == typeof(double);
+			}
+			return false;
+		}
+
+		static void PrintValue(MemberInfo info, object obj, System.IO.TextWriter stream)
+		{
+			var fieldInfo = info as FieldInfo;
+			if (fieldInfo != null)
+			{
+				var val = fieldInfo.GetValue(obj);
+				if (fieldInfo.FieldType == typeof(string))
+				{
+					PrintValue(val as string, stream);
+					return;
+				}
+				if (fieldInfo.FieldType == typeof(double))
+				{
+					PrintValue((double)val, stream);
+					return;
+				}
+			}
+			Debug.Log(string.Format("failed to print value of {0}", info));
+		}
+
+		static void PrintValue(string val, System.IO.TextWriter stream)
+		{
+			stream.Write('"');
+			stream.Write(JsonEscape(val));
+			stream.Write('"');
+		}
+		static void PrintValue(double val, System.IO.TextWriter stream)
+		{
+			stream.Write(val);
+		}
+
+		static string JsonEscape(string str)
+		{
+			return str.Replace("\"", "\\\"").Replace("\\", "\\\\");
 		}
 	}
 }
