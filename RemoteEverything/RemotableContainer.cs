@@ -7,7 +7,7 @@ namespace RemoteEverything
 	public class RemotableContainer
 	{
 
-		public static RemotableContainer instance
+		public static RemotableContainer Instance
 		{
 			get
 			{
@@ -19,25 +19,29 @@ namespace RemoteEverything
 
 		private static RemotableContainer _instance;
 
-		private List<WeakReference> remotableInstances = new List<WeakReference>();
+		private int nextId = 1;
+		private readonly Dictionary<int, WeakReference> remotableInstances = new Dictionary<int, WeakReference>();
 
-		private RemotableContainer ()
+		public void Register(object remotable)
 		{
-		}
-
-		public void register(object remotable)
-		{
-			remotableInstances.Add(new WeakReference(remotable));
-		}
-
-		public void walk(Action<object> callback)
-		{
-			remotableInstances.RemoveAll(reference => !reference.IsAlive);
-			foreach (var reference in remotableInstances)
+			lock (remotableInstances)
 			{
-				var obj = reference.Target;
-				if (obj != null)
-					callback(obj);
+				remotableInstances[nextId++] = new WeakReference(remotable);
+			}
+		}
+
+		public void Walk(Action<int, object> callback)
+		{
+			lock(remotableInstances)
+			{
+				foreach (var obsolete in remotableInstances.Where(kv => ! kv.Value.IsAlive).ToList())
+					remotableInstances.Remove(obsolete.Key);
+				foreach (var reference in remotableInstances)
+				{
+					var obj = reference.Value.Target;
+					if (obj != null)
+						callback(reference.Key, obj);
+				}
 			}
 		}
 	}

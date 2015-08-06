@@ -93,13 +93,15 @@ namespace RemoteEverything
 			Debug.Log("Processing list request");
 			#endif
 			result.Write("{\"objects\":[");
-			RemotableContainer.instance.walk(obj => PrintObjectDescription(obj, result));
+			RemotableContainer.Instance.Walk((id, obj) => PrintObjectDescription(id, obj, result));
 			result.Write("]}");
 		}
 
-		static void PrintObjectDescription(object obj, System.IO.TextWriter stream)
+		static void PrintObjectDescription(int id, object obj, System.IO.TextWriter stream)
 		{
-			stream.Write("{\"type\":\"");
+			stream.Write("{\"id\":");
+			stream.Write(id);
+			stream.Write(",\"type\":\"");
 			stream.Write(JsonEscape(obj.GetType().FullName));
 			stream.Write("\",\"content\":{");
 			var content = RemotableContent.get(obj.GetType());
