@@ -87,107 +87,65 @@ namespace RemoteEverything
 			memStream.WriteTo(ctx.Response.OutputStream);
 		}
 
-		void HandleListRequest(System.IO.TextWriter result)
+		void HandleListRequest(System.IO.TextWriter stream)
 		{
 			#if DEBUG
 			Debug.Log("Processing list request");
 			#endif
-			result.Write("{\"objects\":[");
-			RemotableContainer.Instance.Walk((id, obj) => PrintObjectDescription(id, obj, result));
-			result.Write("]}");
+			var result = new Json.Object();
+			var objects = new Json.List();
+			RemotableContainer.Instance.Walk((id, obj) => objects.Add(BuildObjectDescription(id, obj)));
+			result.Add("objects", objects);
+			result.Write(stream);
 		}
 
-		static void PrintObjectDescription(int id, object obj, System.IO.TextWriter stream)
+		static Json.Node BuildObjectDescription(int id, object obj)
 		{
-			stream.Write("{\"id\":");
-			stream.Write(id);
-			stream.Write(",\"type\":\"");
-			stream.Write(JsonEscape(obj.GetType().FullName));
-			stream.Write("\",\"content\":{");
-			var content = RemotableContent.get(obj.GetType());
+			var type = obj.GetType();
+			var description = new Json.Object();
+			description.Add("id", Json.Node.MakeValue(id));
+			description.Add("type", Json.Node.MakeValue(type.FullName));
 
-			bool first = true;
+			var content = new Json.Object();
+			foreach (var kv in RemotableContent.get(type).exported)
+				content.Add(kv.Value.Name, BuildMember(kv.Value, obj));
 
-			foreach (var kv in content.exported)
-			{
-				if (first)
-					first = false;
-				else
-					stream.Write(",");
-				PrintMember(kv.Value, obj, stream);
-			}
-			stream.WriteLine("}");
-
+			description.Add("content", content);
+			return description;
 		}
 
-		static void PrintMember(MemberInfo info, object obj, System.IO.TextWriter stream)
+		static Json.Node BuildMember(MemberInfo info, object obj)
 		{
-			stream.Write('"');
-			stream.Write(JsonEscape(info.Name));
-			stream.Write("\":{\"type\":");
+			var content = new Json.Object();
 			if (info is FieldInfo)
-				stream.Write("field");
+				content.Add("type", Json.Node.MakeValue("field"));
 			else if (info is PropertyInfo)
-				stream.Write("property");
+				content.Add("type", Json.Node.MakeValue("property"));
 			else if (info is MethodInfo)
-				stream.Write("method");
+				content.Add("type", Json.Node.MakeValue("method"));
 			else
-				stream.Write("unknown");
-			stream.Write("\"");
-			if (IsPrintable(info))
-			{
-				stream.Write("\"value\":");
-				PrintValue(info, obj, stream);
-			}
-			stream.Write("}");
+				content.Add("type", Json.Node.MakeValue("unknown"));
+
+			var value = BuildValue(info, obj);
+			if (value != null)
+				content.Add("value", value);
+
+			return content;
 		}
 
-		static bool IsPrintable(MemberInfo info)
-		{
-			var fieldInfo = info as FieldInfo;
-			if (fieldInfo != null)
-			{
-				var type = fieldInfo.FieldType;
-				return type == typeof(string)
-					|| type == typeof(double);
-			}
-			return false;
-		}
-
-		static void PrintValue(MemberInfo info, object obj, System.IO.TextWriter stream)
+		static Json.Node BuildValue(MemberInfo info, object obj)
 		{
 			var fieldInfo = info as FieldInfo;
 			if (fieldInfo != null)
 			{
 				var val = fieldInfo.GetValue(obj);
 				if (fieldInfo.FieldType == typeof(string))
-				{
-					PrintValue(val as string, stream);
-					return;
-				}
+					return Json.Node.MakeValue(val as string);
 				if (fieldInfo.FieldType == typeof(double))
-				{
-					PrintValue((double)val, stream);
-					return;
-				}
+					return Json.Node.MakeValue((double)val);
 			}
 			Debug.Log(string.Format("failed to print value of {0}", info));
-		}
-
-		static void PrintValue(string val, System.IO.TextWriter stream)
-		{
-			stream.Write('"');
-			stream.Write(JsonEscape(val));
-			stream.Write('"');
-		}
-		static void PrintValue(double val, System.IO.TextWriter stream)
-		{
-			stream.Write(val);
-		}
-
-		static string JsonEscape(string str)
-		{
-			return str.Replace("\"", "\\\"").Replace("\\", "\\\\");
+			return new Json.String("");
 		}
 	}
 }

@@ -1,7 +1,8 @@
 KSPDIR  := ${HOME}/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program
 MANAGED := ${KSPDIR}/KSP_Data/Managed/
 
-SOURCEFILES := $(wildcard RemoteEverything/*.cs)
+SOURCEFILES := $(wildcard RemoteEverything/*.cs)\
+	$(wildcard RemoteEverything/Json/*.cs)
 
 RESGEN2 := resgen2
 GMCS    := gmcs
