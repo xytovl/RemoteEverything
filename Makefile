@@ -1,11 +1,11 @@
-KSPDIR  := ${HOME}/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program
+KSPDIR  ?= ${HOME}/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program
 MANAGED := ${KSPDIR}/KSP_Data/Managed/
 
 SOURCEFILES := $(wildcard RemoteEverything/*.cs)\
 	$(wildcard RemoteEverything/Json/*.cs)
 
 RESGEN2 := resgen2
-GMCS    := gmcs
+GMCS    ?= mcs
 GIT     := git
 ZIP     := zip
 
@@ -50,7 +50,7 @@ package: build/RemoteEverything.dll
 zip: package RemoteEverything-${VERSION}.zip
 
 release: zip
-	git commit -m "release v${VERSION}" Makefile RemoteEverything.version
+	git commit -m "release v${VERSION}" Makefile
 	git tag v${VERSION}
 
 clean:
