@@ -145,7 +145,7 @@ namespace RemoteEverything
 					return Json.Node.MakeValue((double)val);
 			}
 			Debug.Log(string.Format("failed to print value of {0}", info));
-			return new Json.String("");
+			return null;
 		}
 	}
 }
