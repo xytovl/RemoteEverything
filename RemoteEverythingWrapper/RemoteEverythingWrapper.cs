@@ -34,7 +34,7 @@ namespace ChangeMe
 			return null;
 		}
 
-		public static void Register(object obj)
+		public static void Register(object obj, string logicalId)
 		{
 			if (! initialized)
 			{
@@ -45,7 +45,7 @@ namespace ChangeMe
 				return;
 			try
 			{
-				realContainer.GetType().GetMethod("Register").Invoke(realContainer, new Object[] {obj});
+				realContainer.GetType().GetMethod("Register").Invoke(realContainer, new object[] {obj, logicalId});
 			}
 			catch (Exception e)
 			{
