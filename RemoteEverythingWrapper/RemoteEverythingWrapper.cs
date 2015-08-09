@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using UnityEngine;
 
 namespace ChangeMe
 {
@@ -13,41 +14,42 @@ namespace ChangeMe
 		static bool initialized = false;
 		static object realContainer;
 
-		static object findRealContainer()
+		static object FindRealContainer()
 		{
 			try 
 			{
-				//var t = Type.GetType("");
 				foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
 				{
 					foreach (var t in a.GetExportedTypes())
 					{
 						if (t.FullName == "RemoteEverything.RemotableContainer")
-							return t.GetProperty("instance").GetValue(null, null);
+							return t.GetProperty("Instance").GetValue(null, null);
 					}
 				}
 			}
 			catch (Exception e)
 			{
+				Debug.LogException(e);
 			}
 			return null;
 		}
 
-		public static void register(object obj)
+		public static void Register(object obj)
 		{
 			if (! initialized)
 			{
-				realContainer = findRealContainer();
+				realContainer = FindRealContainer();
 				initialized = true;
 			}
 			if (realContainer == null)
 				return;
 			try
 			{
-				realContainer.GetType().GetMethod("register").Invoke(realContainer, new Object[] {obj});
+				realContainer.GetType().GetMethod("Register").Invoke(realContainer, new Object[] {obj});
 			}
 			catch (Exception e)
 			{
+				Debug.LogException(e);
 			}
 		}
 	}
