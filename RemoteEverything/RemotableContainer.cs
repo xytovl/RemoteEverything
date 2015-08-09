@@ -58,7 +58,7 @@ namespace RemoteEverything
 			}
 		}
 
-		public void UnRegister(object remotable)
+		public void Unregister(object remotable)
 		{
 			lock (remotableInstances)
 			{

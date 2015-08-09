@@ -14,6 +14,17 @@ namespace ChangeMe
 		static bool initialized = false;
 		static object realContainer;
 
+		static object Container { get
+			{
+				if (! initialized)
+				{
+					realContainer = FindRealContainer();
+					initialized = true;
+				}
+				return realContainer;
+			}
+		}
+
 		static object FindRealContainer()
 		{
 			try 
@@ -36,16 +47,27 @@ namespace ChangeMe
 
 		public static void Register(object obj, string logicalId)
 		{
-			if (! initialized)
-			{
-				realContainer = FindRealContainer();
-				initialized = true;
-			}
-			if (realContainer == null)
+			var container = Container;
+			if (container == null)
 				return;
 			try
 			{
-				realContainer.GetType().GetMethod("Register").Invoke(realContainer, new object[] {obj, logicalId});
+				container.GetType().GetMethod("Register").Invoke(realContainer, new object[] {obj, logicalId});
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
+			}
+		}
+
+		public static void Unregister(object obj)
+		{
+			var container = Container;
+			if (container == null)
+				return;
+			try
+			{
+				container.GetType().GetMethod("Unregister").Invoke(realContainer, new object[] {obj});
 			}
 			catch (Exception e)
 			{
