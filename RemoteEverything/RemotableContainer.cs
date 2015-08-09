@@ -25,12 +25,32 @@ namespace RemoteEverything
 
 		public void Register(object remotable)
 		{
+			if (remotable == null)
+				throw new ArgumentNullException("remotable", "null can not be registered as remotable");
 			lock (remotableInstances)
 			{
+				if (remotableInstances.Any(kv => kv.Value.Target == remotable))
+				{
+#if DEBUG
+					Debug.Log(string.Format("Object {0} already registered, ignoring", remotable));
+#endif
+					return;
+				}
+
 #if DEBUG
 				Debug.Log(string.Format("Registered remotable instance: {0}", remotable));
 #endif
 				remotableInstances[nextId++] = new WeakReference(remotable);
+			}
+		}
+
+		public void UnRegister(object remotable)
+		{
+			lock (remotableInstances)
+			{
+				var obj = remotableInstances.FirstOrDefault(kv => kv.Value.Target == remotable);
+				if (obj.Value != null)
+					remotableInstances.Remove(obj.Key);
 			}
 		}
 
