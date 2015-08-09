@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using UnityEngine;
@@ -131,26 +132,33 @@ namespace RemoteEverything
 			#if DEBUG
 			Debug.Log("Processing list request");
 			#endif
+			var objects = new Dictionary<string, Json.Node>();
+			RemotableContainer.Instance.Walk(
+					(obj, logicalId) =>	GetOrCreate(objects, logicalId).Add(obj.GetType().FullName, BuildObjectDescription(obj)));
 			var result = new Json.Object();
-			var objects = new Json.List();
-			RemotableContainer.Instance.Walk((id,  obj, logicalId) => objects.Add(BuildObjectDescription(id, obj, logicalId)));
-			result.Add("objects", objects);
+			result.Add("objects", new Json.Object(objects));
 			result.Write(stream);
 		}
 
-		static Json.Node BuildObjectDescription(int id, object obj, string logicalId)
+		static Json.Object GetOrCreate(Dictionary<string, Json.Node> container, string key)
+		{
+			Json.Node res;
+			if (!container.TryGetValue(key, out res))
+			{
+				res = new Json.Object();
+				container[key] = res;
+			}
+			return res as Json.Object;
+		}
+
+		static Json.Node BuildObjectDescription(object obj)
 		{
 			var type = obj.GetType();
 			var description = new Json.Object();
-			description.Add("id", Json.Node.MakeValue(id));
-			description.Add("logicalId", Json.Node.MakeValue(logicalId));
-			description.Add("type", Json.Node.MakeValue(type.FullName));
 
-			var content = new Json.Object();
 			foreach (var kv in RemotableContent.Get(type).Exported)
-				content.Add(kv.Key, BuildMember(kv.Value, obj));
+				description.Add(kv.Key, BuildMember(kv.Value, obj));
 
-			description.Add("content", content);
 			return description;
 		}
 

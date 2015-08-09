@@ -18,40 +18,43 @@ namespace RemoteEverything
 			}
 		}
 
-		private struct Ref
-		{
-			public readonly WeakReference Reference;
-			public readonly string LogicalId;
-			public Ref(object obj, string logicalId)
-			{
-				Reference = new WeakReference(obj);
-				LogicalId = logicalId;
-			}
-		}
-
 		private static RemotableContainer _instance;
 
-		private int nextId = 0;
-		private readonly Dictionary<int, Ref> remotableInstances = new Dictionary<int, Ref>();
+		private readonly Dictionary<string, Dictionary<Type, WeakReference>> remotableInstances = new Dictionary<string, Dictionary<Type, WeakReference>>();
 
 		public void Register(object remotable, string logicalId)
 		{
 			if (remotable == null)
 				throw new ArgumentNullException("remotable", "null can not be registered as remotable");
+
+			var type = remotable.GetType();
 			lock (remotableInstances)
 			{
-				if (remotableInstances.Any(kv => kv.Value.Reference.Target == remotable))
+				Dictionary<Type, WeakReference> registeredTypes;
+				if (remotableInstances.TryGetValue(logicalId, out registeredTypes))
 				{
+					WeakReference target;
+					if (registeredTypes.TryGetValue(type, out target))
+					{
+						if (target.Target == remotable)
+						{
 #if DEBUG
-					Debug.Log(string.Format("Object {0} already registered, ignoring", remotable));
+							Debug.Log(string.Format("Object {0} already registered, ignoring", remotable));
 #endif
-					return;
+							return;
+						}
+						throw new Exception(string.Format("Tried to register twice an object of type {0} with logical id {1}", type, logicalId));
+					}
 				}
-
+				else
+				{
+					registeredTypes = new Dictionary<Type, WeakReference>();
+					remotableInstances[logicalId] = registeredTypes;
+				}
+				registeredTypes[type] = new WeakReference(remotable);
 #if DEBUG
 				Debug.Log(string.Format("Registered remotable instance: {0}", remotable));
 #endif
-				remotableInstances[nextId++] = new Ref(remotable, logicalId);
 			}
 		}
 
@@ -59,24 +62,47 @@ namespace RemoteEverything
 		{
 			lock (remotableInstances)
 			{
-				var obj = remotableInstances.FirstOrDefault(kv => kv.Value.Reference.Target == remotable);
-				if (obj.Value.Reference != null)
-					remotableInstances.Remove(obj.Key);
+				foreach (var registeredTypes in remotableInstances.Values)
+				{
+					WeakReference target;
+					if (registeredTypes.TryGetValue(remotable.GetType(), out target) && target.Target == remotable)
+						registeredTypes.Remove(remotable.GetType());
+				}
+				cleanup();
 			}
 		}
 
-		public void Walk(Action<int, object, string> callback)
+		public void Walk(Action<object, string> callback)
 		{
 			lock(remotableInstances)
 			{
-				foreach (var obsolete in remotableInstances.Where(kv => ! kv.Value.Reference.IsAlive).ToList())
-					remotableInstances.Remove(obsolete.Key);
-				foreach (var reference in remotableInstances)
+				cleanup();
+				foreach (var perLogicalId in remotableInstances)
 				{
-					var obj = reference.Value.Reference.Target;
-					if (obj != null)
-						callback(reference.Key, obj, reference.Value.LogicalId);
+					foreach (var reference in perLogicalId.Value)
+					{
+						var obj = reference.Value.Target;
+						if (obj != null)
+							callback(obj, perLogicalId.Key);
+					}
 				}
+			}
+		}
+
+		void cleanup()
+		{
+			lock(remotableInstances)
+			{
+				var emptyLogicalIds = new List<string>();
+				foreach (var perLogicalId in remotableInstances)
+				{
+					foreach (var obsolete in perLogicalId.Value.Where(kv => ! kv.Value.IsAlive).ToList())
+						perLogicalId.Value.Remove(obsolete.Key);
+					if (perLogicalId.Value.Count == 0)
+						emptyLogicalIds.Add(perLogicalId.Key);
+				}
+			foreach (var id in emptyLogicalIds)
+				remotableInstances.Remove(id);
 			}
 		}
 	}
