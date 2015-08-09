@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace RemoteEverything
 {
@@ -19,13 +20,16 @@ namespace RemoteEverything
 
 		private static RemotableContainer _instance;
 
-		private int nextId = 1;
+		private int nextId = 0;
 		private readonly Dictionary<int, WeakReference> remotableInstances = new Dictionary<int, WeakReference>();
 
 		public void Register(object remotable)
 		{
 			lock (remotableInstances)
 			{
+#if DEBUG
+				Debug.Log(string.Format("Registered remotable instance: {0}", remotable));
+#endif
 				remotableInstances[nextId++] = new WeakReference(remotable);
 			}
 		}
