@@ -121,6 +121,7 @@ namespace RemoteEverything
 				throw new HttpException(404);
 			}
 			outputStream.Flush();
+			ctx.Response.Headers.Add("Access-Control-Allow-Origin: *");
 			ctx.Response.ContentLength64 = memStream.Length;
 			memStream.WriteTo(ctx.Response.OutputStream);
 		}
