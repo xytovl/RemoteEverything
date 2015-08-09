@@ -51,6 +51,12 @@ namespace RemoteEverything
 				toolbarButton.SetTexture(inactiveTexture);
 			}
 		}
+
+		public void Update()
+		{
+			if (httpServer != null)
+				httpServer.ProcessRequests();
+		}
 		
 	}
 }

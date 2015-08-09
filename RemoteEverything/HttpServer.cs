@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace RemoteEverything
 		}
 
 		HttpListener listener;
+		List<HttpListenerContext> pending = new List<HttpListenerContext>();
 
 		public HttpServer(ushort port)
 		{
@@ -29,27 +31,63 @@ namespace RemoteEverything
 
 		public void Terminate()
 		{
+			lock(listener)
+			{
+				foreach (var request in pending)
+				{
+					try
+					{
+						request.Response.Abort();
+					}
+					catch (Exception e)
+					{
+					Debug.LogException(e);
+					}
+				}
+			}
 			listener.Close();
+		}
+
+		// To be called in main thread
+		public void ProcessRequests()
+		{
+			List<HttpListenerContext> requests;
+			lock(listener)
+			{
+				if (pending.Count == 0)
+					return;
+				requests = pending;
+				pending = new List<HttpListenerContext>();
+			}
+			foreach (var request in requests)
+			{
+				try
+				{
+					HandleRequest(request);
+				}
+				catch (Exception e)
+				{
+					var httpError = e as HttpException;
+					if (httpError != null)
+						request.Response.StatusCode = httpError._code;
+					Debug.LogException(e);
+				}
+				request.Response.Close();
+			}
 		}
 
 		void ChainRequests(IAsyncResult result)
 		{
-			HttpListenerContext ctx = null;
 			try
 			{
-				ctx = listener.EndGetContext(result);
-				HandleRequest(ctx);
-				ctx.Response.Close();
+				var ctx = listener.EndGetContext(result);
+				lock(listener)
+				{
+					pending.Add(ctx);
+				}
 			}
 			catch (Exception e)
 			{
-				if (ctx != null)
-				{
-					var httpError = e as HttpException;
-					if (httpError != null)
-						ctx.Response.StatusCode = httpError._code;
-					ctx.Response.Close();
-				}
 				Debug.LogException(e);
 			}
 			if (listener.IsListening)
