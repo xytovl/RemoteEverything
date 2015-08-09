@@ -6,7 +6,7 @@ namespace ChangeMe
 {
 	public class Remotable : System.Attribute
 	{
-		public string name;
+		public string displayName;
 	}
 
 	public static class RemotableContainer

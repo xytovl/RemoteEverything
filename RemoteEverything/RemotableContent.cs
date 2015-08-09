@@ -6,9 +6,28 @@ using UnityEngine;
 
 namespace RemoteEverything
 {
+	public class RemotableDetails
+	{
+		public readonly MemberInfo Info;
+		public readonly string DisplayName;
+		public RemotableDetails(object attribute, MemberInfo info)
+		{
+			Info = info;
+			DisplayName = GetFromAttribute<string>(attribute, "displayName");
+		}
+		static T GetFromAttribute<T>(object attribute, string fieldName) where T:class
+		{
+			var field = attribute.GetType().GetField(fieldName);
+			if (field == null)
+				return null;
+			return field.GetValue(attribute) as T;
+		}
+
+	}
+
 	public class RemotableContent
 	{
-		public static RemotableContent get(Type t)
+		public static RemotableContent Get(Type t)
 		{
 			RemotableContent res;
 			if (instances.TryGetValue(t, out res))
@@ -20,29 +39,35 @@ namespace RemoteEverything
 			return res;
 		}
 
-		public Dictionary<string, MemberInfo> exported;
+		public readonly Dictionary<string, RemotableDetails> Exported = new Dictionary<string, RemotableDetails>();
 
 		static Dictionary<Type, RemotableContent> instances = new Dictionary<Type, RemotableContent>();
 
 		RemotableContent(Type type)
 		{
-			exported = type.GetMembers(BindingFlags.GetField
+			foreach (var info in type.GetMembers(BindingFlags.GetField
 				| BindingFlags.GetProperty
 				| BindingFlags.Instance
 				| BindingFlags.Public
 				| BindingFlags.NonPublic
-				| BindingFlags.FlattenHierarchy).Where(
-					testCustomAttribute).ToDictionary(
-						info => info.Name,
-						info => info);
+				| BindingFlags.FlattenHierarchy))
+			{
+				object attribute = FindRemotableAttribute(info);
+				if (attribute != null)
+				{
+					Exported.Add(
+							info.Name,
+							new RemotableDetails(attribute, info));
+				}
+			}
 			#if DEBUG
-			Debug.Log(string.Format("{0} attributes for {1}", exported.Count, type.Name));
+			Debug.Log(string.Format("{0} attributes for {1}", Exported.Count, type.Name));
 			#endif
 		}
 
-		private static bool testCustomAttribute(MemberInfo info)
+		static object FindRemotableAttribute(MemberInfo info)
 		{
-			return info.GetCustomAttributes(false).Any(obj => obj.GetType().FullName.EndsWith(".Remotable"));
+			return info.GetCustomAttributes(false).FirstOrDefault(obj => obj.GetType().FullName.EndsWith(".Remotable", StringComparison.Ordinal));
 		}
 	}
 }

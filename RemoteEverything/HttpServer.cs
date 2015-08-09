@@ -145,15 +145,16 @@ namespace RemoteEverything
 			description.Add("type", Json.Node.MakeValue(type.FullName));
 
 			var content = new Json.Object();
-			foreach (var kv in RemotableContent.get(type).exported)
-				content.Add(kv.Value.Name, BuildMember(kv.Value, obj));
+			foreach (var kv in RemotableContent.Get(type).Exported)
+				content.Add(kv.Key, BuildMember(kv.Value, obj));
 
 			description.Add("content", content);
 			return description;
 		}
 
-		static Json.Node BuildMember(MemberInfo info, object obj)
+		static Json.Node BuildMember(RemotableDetails details, object obj)
 		{
+			var info = details.Info;
 			var content = new Json.Object();
 			if (info is FieldInfo)
 				content.Add("type", Json.Node.MakeValue("field"));
@@ -167,6 +168,11 @@ namespace RemoteEverything
 			var value = BuildValue(info, obj);
 			if (value != null)
 				content.Add("value", value);
+
+			if (details.DisplayName != null)
+			{
+				content.Add("displayName", Json.Node.MakeValue(details.DisplayName));
+			}
 
 			return content;
 		}
