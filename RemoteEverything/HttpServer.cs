@@ -132,16 +132,17 @@ namespace RemoteEverything
 			#endif
 			var result = new Json.Object();
 			var objects = new Json.List();
-			RemotableContainer.Instance.Walk((id, obj) => objects.Add(BuildObjectDescription(id, obj)));
+			RemotableContainer.Instance.Walk((id,  obj, logicalId) => objects.Add(BuildObjectDescription(id, obj, logicalId)));
 			result.Add("objects", objects);
 			result.Write(stream);
 		}
 
-		static Json.Node BuildObjectDescription(int id, object obj)
+		static Json.Node BuildObjectDescription(int id, object obj, string logicalId)
 		{
 			var type = obj.GetType();
 			var description = new Json.Object();
 			description.Add("id", Json.Node.MakeValue(id));
+			description.Add("logicalId", Json.Node.MakeValue(logicalId));
 			description.Add("type", Json.Node.MakeValue(type.FullName));
 
 			var content = new Json.Object();
