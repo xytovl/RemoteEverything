@@ -40,8 +40,9 @@ build/%.dll: ${SOURCEFILES}
 
 
 package: build/RemoteEverything.dll
-	mkdir -p package/RemoteEverything
+	mkdir -p package/RemoteEverything/www
 	cp RemoteEverything/img/* package/RemoteEverything/
+	cp -r SampleWebUI/* package/RemoteEverything/www/
 	cp $< package/RemoteEverything/
 
 %.zip:

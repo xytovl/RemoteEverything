@@ -21,6 +21,13 @@ namespace RemoteEverything
 
 		HttpListener listener;
 		List<HttpListenerContext> pending = new List<HttpListenerContext>();
+		string documentRoot = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "www");
+		Dictionary<string, string> contentTypes = new Dictionary<string, string>()
+		{
+			{ ".html", "text/html; charset=utf-8" },
+			{ ".css", "text/css" },
+			{ ".js", "text/javascript" }
+		};
 
 		public HttpServer(ushort port)
 		{
@@ -119,8 +126,10 @@ namespace RemoteEverything
 				HandleListRequest(outputStream);
 				break;
 			default:
-				throw new HttpException(404);
+				ServeFile(ctx);
+				return;
 			}
+
 			outputStream.Flush();
 			ctx.Response.Headers.Add("Access-Control-Allow-Origin: *");
 			ctx.Response.ContentLength64 = memStream.Length;
@@ -138,6 +147,47 @@ namespace RemoteEverything
 			var result = new Json.Object();
 			result.Add("objects", new Json.Object(objects));
 			result.Write(stream);
+		}
+
+		void ServeFile(HttpListenerContext ctx)
+		{
+			string uri = ctx.Request.Url.AbsolutePath;
+			if (uri.EndsWith("/"))
+				uri += "index.html";
+
+			string[] components = uri.Split(new char[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+			if (components.Any(s => s == ".."))
+				throw new HttpException(400);
+
+			string path = System.IO.Path.Combine(documentRoot, String.Join(System.IO.Path.DirectorySeparatorChar.ToString(), components));
+
+			#if DEBUG
+			Debug.Log("File name: " + path);
+			#endif
+
+			string contentType;
+			if (!contentTypes.TryGetValue(System.IO.Path.GetExtension(path), out contentType))
+				throw new HttpException(404);
+			ctx.Response.ContentType = contentType;
+
+			try
+			{
+				var f = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+				ctx.Response.ContentLength64 = f.Length;
+				int n = 0;
+				byte[] buffer = new byte[32768];
+				while ((n = f.Read(buffer, 0, buffer.Length)) > 0)
+				{
+					ctx.Response.OutputStream.Write(buffer, 0, n);
+				}
+				f.Close();
+			}
+			catch(Exception e)
+			{
+				Debug.LogException(e);
+				throw new HttpException(404);
+			}
 		}
 
 		static Json.Object GetOrCreate(Dictionary<string, Json.Node> container, string key)
