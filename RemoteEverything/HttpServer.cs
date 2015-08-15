@@ -49,7 +49,7 @@ namespace RemoteEverything
 					}
 					catch (Exception e)
 					{
-					Debug.LogException(e);
+						Debug.LogException(e);
 					}
 				}
 			}
