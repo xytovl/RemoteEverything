@@ -60,14 +60,14 @@ namespace ChangeMe
 			}
 		}
 
-		public static void ManualRegisterMember(object obj, string logicalId, MemberInfo member)
+		public static void ManualRegisterMember(Type obj, MemberInfo member, string displayName = null)
 		{
 			var container = Container;
 			if (container == null)
 				return;
 			try
 			{
-				container.GetType().GetMethod("ManualRegisterMember").Invoke(realContainer, new object[] {obj, logicalId, member});
+				container.GetType().GetMethod("ManualRegisterMember").Invoke(realContainer, new object[] {obj, member, displayName});
 			}
 			catch (Exception e)
 			{
