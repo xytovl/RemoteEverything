@@ -60,6 +60,21 @@ namespace ChangeMe
 			}
 		}
 
+		public static void ManualRegisterMember(object obj, string logicalId, MemberInfo member)
+		{
+			var container = Container;
+			if (container == null)
+				return;
+			try
+			{
+				container.GetType().GetMethod("ManualRegisterMember").Invoke(realContainer, new object[] {obj, logicalId, member});
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
+			}
+		}
+
 		public static void Unregister(object obj)
 		{
 			var container = Container;

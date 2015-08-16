@@ -58,6 +58,11 @@ namespace RemoteEverything
 			}
 		}
 
+		public void ManualRegisterMember(Type type, System.Reflection.MemberInfo info)
+		{
+			RemotableContent.Get(type).AddMember(info);
+		}
+
 		public void Unregister(object remotable)
 		{
 			lock (remotableInstances)
