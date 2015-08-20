@@ -58,9 +58,9 @@ namespace RemoteEverything
 			}
 		}
 
-		public void ManualRegisterMember(Type type, System.Reflection.MemberInfo info, string displayName)
+		public void ManualRegisterMember(Type type, System.Reflection.MemberInfo info, Dictionary<string, object> moreInfo)
 		{
-			RemotableContent.Get(type).AddMember(info, displayName);
+			RemotableContent.Get(type).AddMember(info, moreInfo);
 		}
 
 		public void Unregister(object remotable)

@@ -16,10 +16,11 @@ namespace RemoteEverything
 			DisplayName = GetFromAttribute<string>(attribute, "displayName");
 		}
 
-		public RemotableDetails(string displayName, MemberInfo info)
+		public RemotableDetails(Dictionary<string, object> moreInfo, MemberInfo info)
 		{
 			Info = info;
-			DisplayName = displayName;
+			if (moreInfo.ContainsKey("DisplayName"))
+				DisplayName = moreInfo["DisplayName"] as string;
 		}
 
 		static T GetFromAttribute<T>(object attribute, string fieldName) where T:class
@@ -77,9 +78,9 @@ namespace RemoteEverything
 			return info.GetCustomAttributes(false).FirstOrDefault(obj => obj.GetType().FullName.EndsWith(".Remotable", StringComparison.Ordinal));
 		}
 
-		public void AddMember(MemberInfo info, string displayName)
+		public void AddMember(MemberInfo info, Dictionary<string, object> moreInfo)
 		{
-			if (!Exported.ContainsKey(info.Name)) Exported.Add(info.Name, new RemotableDetails(displayName, info));
+			if (!Exported.ContainsKey(info.Name)) Exported.Add(info.Name, new RemotableDetails(moreInfo, info));
 		}
 	}
 }

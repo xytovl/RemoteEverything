@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ChangeMe
@@ -67,7 +68,11 @@ namespace ChangeMe
 				return;
 			try
 			{
-				container.GetType().GetMethod("ManualRegisterMember").Invoke(realContainer, new object[] {obj, member, displayName});
+				var moreInfo = new Dictionary<string, object>();
+				if (displayName != null)
+					moreInfo["DisplayName"] = displayName;
+
+				container.GetType().GetMethod("ManualRegisterMember").Invoke(realContainer, new object[] {obj, member, moreInfo});
 			}
 			catch (Exception e)
 			{
