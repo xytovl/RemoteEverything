@@ -225,9 +225,14 @@ namespace RemoteEverything
 			else
 				content.Add("type", Json.Node.MakeValue("unknown"));
 
-			var value = BuildValue(info, obj);
-			if (value != null)
-				content.Add("value", value);
+			if (details.AsDouble != null)
+			{
+				content.Add("value", Json.Node.MakeValue(details.AsDouble(obj)));
+			}
+			else if (details.AsString != null)
+			{
+				content.Add("value", Json.Node.MakeValue(details.AsString(obj)));
+			}
 
 			if (details.DisplayName != null)
 			{
@@ -235,21 +240,6 @@ namespace RemoteEverything
 			}
 
 			return content;
-		}
-
-		static Json.Node BuildValue(MemberInfo info, object obj)
-		{
-			var fieldInfo = info as FieldInfo;
-			if (fieldInfo != null)
-			{
-				var val = fieldInfo.GetValue(obj);
-				if (fieldInfo.FieldType == typeof(string))
-					return Json.Node.MakeValue(val as string);
-				if (fieldInfo.FieldType == typeof(double))
-					return Json.Node.MakeValue((double)val);
-			}
-			Debug.Log(string.Format("failed to print value of {0}", info));
-			return null;
 		}
 	}
 }
