@@ -1,10 +1,10 @@
 body {
     margin: 0;
+    font-family: sans-serif;
 }
 
 header {
     padding: 1em;
-    
 }
 
 .window {
@@ -25,17 +25,13 @@ header {
 }
 
 .window h1 .close-button {
-    float: right;
+    float: left;
     cursor: pointer;
 }
 
 .window h1 .edit-button {
-    float: right;
+    float: left;
     cursor: pointer;
-}
-
-.window:not(.window-editing) .delete-field {
-    display: none;
 }
 
 .window-editing .edit-button {
@@ -61,6 +57,15 @@ header {
     margin: 0.5em;
 }
 
-#editor-selected-window {
-    width: 100%;
+.window:not(.window-editing) .new-item-selection, .window:not(.window-editing) .new-item-button, .window:not(.window-editing) .delete-field {
+    display: none;
+}
+
+.new-item-button {
+    margin-left: 0.3em;
+}
+
+.data-value-unit {
+    padding-left: 0.2em;
+    display: inline-block;
 }
