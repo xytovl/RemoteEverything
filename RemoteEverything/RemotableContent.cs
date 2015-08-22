@@ -10,15 +10,51 @@ namespace RemoteEverything
 	{
 		public readonly MemberInfo Info;
 		public readonly string DisplayName;
+
+		public readonly Func<object, double> AsDouble;
+		public readonly Func<object, string> AsString;
+
 		public RemotableDetails(object attribute, MemberInfo info)
 		{
 			Info = info;
-			DisplayName = GetFromAttribute<string>(attribute, "displayName");
+			if (attribute != null)
+				DisplayName = GetFromAttribute<string>(attribute, "displayName");
+
+			// Build the converter object
+			Type valueType = null;
+			Func<object, object> getValue = null;
+
+			var fieldInfo = Info as FieldInfo;
+			if (fieldInfo != null)
+			{
+				valueType = fieldInfo.FieldType;
+				getValue = fieldInfo.GetValue;
+			}
+
+			var propertyInfo = Info as PropertyInfo;
+			if (propertyInfo != null)
+			{
+				valueType = propertyInfo.PropertyType;
+				getValue = instance => propertyInfo.GetValue(instance, null);
+			}
+
+			if (valueType != null && getValue != null)
+			{
+				var converter = new TypeConverter(valueType);
+				if (converter.AsDouble != null)
+				{
+					AsDouble = instance => converter.AsDouble(getValue(instance));
+				}
+				if (converter.AsString != null)
+				{
+					AsString = instance => converter.AsString(getValue(instance));
+				}
+			}
+
 		}
 
-		public RemotableDetails(Dictionary<string, object> moreInfo, MemberInfo info)
+		public RemotableDetails(Dictionary<string, object> moreInfo, MemberInfo info): this((object)null, info)
 		{
-			Info = info;
 			if (moreInfo.ContainsKey("DisplayName"))
 				DisplayName = moreInfo["DisplayName"] as string;
 		}
