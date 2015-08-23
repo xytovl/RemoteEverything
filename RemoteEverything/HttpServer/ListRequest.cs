@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -132,23 +133,34 @@ namespace RemoteEverything
 		{
 			var info = details.Info;
 			var content = new Json.Object();
-			bool shouldGetValue = false;
 			if (info is FieldInfo)
 			{
 				content.Add("type", Json.Node.MakeValue("field"));
-				shouldGetValue = true;
+				fieldAllowed = true;
 			}
 			else if (info is PropertyInfo)
-			{
 				content.Add("type", Json.Node.MakeValue("property"));
-				shouldGetValue = fieldAllowed;
-			}
 			else if (info is MethodInfo)
+			{
 				content.Add("type", Json.Node.MakeValue("method"));
+				content.Add(
+					"parameters",
+					new Json.List(
+						details.parameters.Select(
+							p => Json.Node.MakeValue(p.GetType().FullName)).ToList()
+					)
+				);
+			}
 			else
+			{
 				content.Add("type", Json.Node.MakeValue("unknown"));
+				fieldAllowed = false;
+			}
 
-			if (shouldGetValue)
+			if (details.valueType != null)
+				content.Add("valueType", Json.Node.MakeValue(details.valueType.FullName));
+
+			if (fieldAllowed)
 			{
 				if (details.AsDouble != null)
 					content.Add("value", Json.Node.MakeValue(details.AsDouble(obj)));

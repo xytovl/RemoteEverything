@@ -14,6 +14,13 @@ namespace RemoteEverything
 		public readonly Func<object, double> AsDouble;
 		public readonly Func<object, string> AsString;
 
+		// Type of the field value, property value, method return value
+		// null for set-only property
+		public readonly Type valueType;
+
+		// For methods, parameter count and type
+		public readonly ParameterInfo[] parameters;
+
 		public RemotableDetails(object attribute, MemberInfo info)
 		{
 			Info = info;
@@ -21,7 +28,6 @@ namespace RemoteEverything
 				DisplayName = GetFromAttribute<string>(attribute, "displayName");
 
 			// Build the converter object
-			Type valueType = null;
 			Func<object, object> getValue = null;
 
 			var fieldInfo = Info as FieldInfo;
@@ -35,7 +41,22 @@ namespace RemoteEverything
 			if (propertyInfo != null)
 			{
 				valueType = propertyInfo.PropertyType;
-				getValue = instance => propertyInfo.GetValue(instance, null);
+				if (propertyInfo.CanRead)
+					getValue = instance => propertyInfo.GetValue(instance, null);
+			}
+
+			var methodInfo = Info as MethodInfo;
+			if (methodInfo != null)
+			{
+				valueType = methodInfo.ReturnType;
+				parameters = methodInfo.GetParameters();
+				if (parameters.All(p => p.IsOptional || p.DefaultValue != DBNull.Value))
+				{
+					object[] args = null;
+					if (parameters.Length != 0)
+						args = parameters.Select(p => p.IsOptional ? Type.Missing : p.DefaultValue).ToArray();
+					getValue = instance => methodInfo.Invoke(instance, args);
+				}
 			}
 
 			if (valueType != null && getValue != null)
