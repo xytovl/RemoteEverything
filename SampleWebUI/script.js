@@ -217,7 +217,7 @@ function Window(parent, title)
     $(this.tbody).sortable({axis: "y"}).sortable("disable");
     $(this.tbody).disableSelection();
 
-    $(this.element).draggable({ handle: "h1", stack: ".window" });
+    $(this.element).draggable({ stack: ".window" });
     $(this.element).on("sortupdate", function() { that.save(); });
 }
 
