@@ -1,71 +1,92 @@
 body {
-    margin: 0;
-    font-family: sans-serif;
+	margin: 0;
+	font-family: sans-serif;
+	background: #000000;
+	font-size: 11px;
 }
 
 header {
-    padding: 1em;
+	padding: 1em;
 }
 
 .window {
-    margin: 2em;
-    border-radius: 0.25em;
-    box-shadow: 0 0 1em #e0e0e0;
-    display: inline-block;
-    position: absolute;
+	margin: 2em;
+	display: inline-block;
+	position: absolute;
+	background: #686c75;
+	padding: 3px;
+}
+
+.window,
+.window a {
+	text-decoration: none;
+	color: #ffffff;
 }
 
 .window h1 {
-    padding: 0.5em;
-    margin: 0;
-    font-size: 1em;
-    background-color: #f0f0f0;
-    cursor: move;
-    border-radius: 0.25em 0.25em 0 0;
+	color: #ffd100;
+	padding: 0.5em;
+	margin: 0;
+	font-size: 1em;
+	cursor: move;
+}
+
+.window a {
+	padding: 6px;
+	background: linear-gradient(to bottom, #878f9e 0%,#878f9e 50%,#646c7b 51%,#434b5a 100%);
+}
+
+.window,
+.window a {
+	border-radius: 6px;
+	border: 1px solid;
+	border-bottom-color: #1d2028;
+	border-right-color: #3b4049;
+	border-top-color: #a5acb7;
+	border-left-color: #989eac;
 }
 
 .window h1 .close-button {
-    float: left;
-    cursor: pointer;
+	float: left;
+	cursor: pointer;
 }
 
 .window h1 .edit-button {
-    float: left;
-    cursor: pointer;
+	float: left;
+	cursor: pointer;
 }
 
 .window-editing .edit-button {
-    color: #f00;
+	color: #f00;
 }
 
 .window-content {
-    padding: 0.3em;
-    background-color: #f8f8f8;
-    border-radius: 0 0 0.25em 0.25em;
-    cursor: default;
+	padding: 0.3em;
+	border-radius: 0 0 0.25em 0.25em;
+	cursor: default;
 }
 
 .window-content td {
-    background-color: #f8f8f8;
+	background-color: #f8f8f8;
 }
 
 .window p {
-    margin: 0.5em;
+	margin: 0.5em;
 }
 
 .window ul {
-    margin: 0.5em;
+	margin: 0.5em;
 }
 
 .window:not(.window-editing) .new-item-selection, .window:not(.window-editing) .new-item-button, .window:not(.window-editing) .delete-field {
-    display: none;
+	display: none;
 }
 
 .new-item-button {
-    margin-left: 0.3em;
+	margin-left: 0.3em;
 }
 
 .data-value-unit {
-    padding-left: 0.2em;
-    display: inline-block;
+	padding-left: 0.2em;
+	display: inline-block;
 }
