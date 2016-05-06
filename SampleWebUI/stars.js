@@ -11,10 +11,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 var drawStars = function(canvas)
 {
-	if (canvas.width >= document.width && canvas.height >= document.height)
+	if (canvas.width >= window.innerWidth && canvas.height >= window.innerHeight)
 		return;
-	canvas.width = Math.max(canvas.width, document.width);
-	canvas.height = Math.max(canvas.height, document.height);
+	canvas.width = Math.max(canvas.width, window.innerWidth);
+	canvas.height = Math.max(canvas.height, window.innerHeight);
 	var context = canvas.getContext('2d'),
 		max_bright = 1,
 		min_bright = .2;
