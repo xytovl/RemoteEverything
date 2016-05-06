@@ -13,14 +13,28 @@ header {
 	margin: 2em;
 	display: inline-block;
 	position: absolute;
-	background: #686c75;
 	padding: 3px;
 }
 
 .window,
-.window a {
+.window-content td 
+{
+	background: #686c75;
+}
+
+.window,
+a,
+.close-button,
+.edit-button
+{
 	text-decoration: none;
 	color: #ffffff;
+}
+
+.close-button,
+.edit-button
+{
+	margin: 5px;
 }
 
 .window h1 {
@@ -31,13 +45,17 @@ header {
 	cursor: move;
 }
 
-.window a {
+a
+{
+	display: inline-block;
 	padding: 6px;
+	margin: 3px;
 	background: linear-gradient(to bottom, #878f9e 0%,#878f9e 50%,#646c7b 51%,#434b5a 100%);
 }
 
 .window,
-.window a {
+a
+{
 	border-radius: 6px;
 	border: 1px solid;
 	border-bottom-color: #1d2028;
@@ -46,13 +64,9 @@ header {
 	border-left-color: #989eac;
 }
 
-.window h1 .close-button {
-	float: left;
-	cursor: pointer;
-}
-
-.window h1 .edit-button {
-	float: left;
+.close-button,
+.edit-button
+{
 	cursor: pointer;
 }
 
@@ -64,10 +78,6 @@ header {
 	padding: 0.3em;
 	border-radius: 0 0 0.25em 0.25em;
 	cursor: default;
-}
-
-.window-content td {
-	background-color: #f8f8f8;
 }
 
 .window p {
@@ -89,4 +99,14 @@ header {
 .data-value-unit {
 	padding-left: 0.2em;
 	display: inline-block;
+}
+
+ul
+{
+	list-style-type: none;
+	padding: 0;
+}
+li
+{
+	display: block;
 }

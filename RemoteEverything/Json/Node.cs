@@ -69,7 +69,22 @@ namespace RemoteEverything.Json
 
 		protected static void Write(System.IO.TextWriter stream, double val)
 		{
-			stream.Write(val);
+			if (System.Double.IsNaN(val))
+			{
+				Write(stream, "NaN");
+			}
+			else if (System.Double.IsPositiveInfinity(val))
+			{
+				Write(stream, "Infinity");
+			}
+			else if (System.Double.IsNegativeInfinity(val))
+			{
+				Write(stream, "-Infinity");
+			}
+			else
+			{
+				stream.Write(val);
+			}
 		}
 	}
 }

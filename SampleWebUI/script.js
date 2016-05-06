@@ -73,9 +73,9 @@ RemoteEverything.prototype.refresh = function()
                 var type = values[i].dataset.type;
                 var field = values[i].dataset.field;
                 $(values[i]).empty();
-                if (that.data[id][type][field].value !== undefined)
+                var value = that.data[id][type][field].value;
+                if (typeof(value) == "number")
                 {
-                    var value = that.data[id][type][field].value;
                     var unit = that.data[id][type][field].unit || "";
                     var mult = 0;
 
@@ -127,6 +127,13 @@ RemoteEverything.prototype.refresh = function()
                     unitSpan.appendChild(document.createTextNode(unit));
                     unitSpan.classList.add("data-value-unit");
                     values[i].appendChild(unitSpan);
+                }
+                else if (value !== undefined)
+                {
+                    var valueSpan = document.createElement("span");
+                    valueSpan.appendChild(document.createTextNode(""+value));
+                    valueSpan.classList.add("data-value");
+                    values[i].appendChild(valueSpan);
                 }
             }
 
@@ -190,8 +197,8 @@ function Window(parent, title)
 
     this.element.innerHTML = '<h1>' +
         '<span class="window-title"></span>' +
-        '<span class="close-button">X</span>' +
-        '<span class="edit-button">E</span>' +
+        '<span class="edit-button" title="edit">E</span>' +
+        '<span class="close-button" title="close">X</span>' +
         '</h1>' +
         '<div class="window-content">' +
         '<table><tbody class="data-table"></tbody></table>' +
