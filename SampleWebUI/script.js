@@ -1,283 +1,521 @@
 $(function() {
-    $(".window").draggable({ handle: "h1", stack: ".window" });
+	$(".window").draggable({ handle: "h1", stack: ".window" });
 });
+
+function generateUUID() {
+	var d = new Date().getTime();
+	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c)
+	{
+		var r = (d + Math.random()*16)%16 | 0;
+		d = Math.floor(d/16);
+		return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+	});
+	return uuid;
+};
+
+function WindowTemplate(re, data)
+{
+	if (data === undefined)
+	{
+		this.id = generateUUID();
+		this.template_name = "New window";
+		this.field_list = [];
+		this.type_name = "";
+	}
+	else
+	{
+		this.id = data.id;
+		this.template_name = data.template_name;
+		this.field_list = data.field_list;
+		this.type_name = data.type_name;
+	}
+	re.templates[this.id] = this;
+}
+
+WindowTemplate.prototype.contains = function(object, member)
+{
+	for(var i = 0; i < this.field_list.length; i++)
+	{
+		if (this.field_list[i].object == object && this.field_list[i].member == member)
+			return true;
+	}
+
+	return false;
+}
+
+WindowTemplate.prototype.remove = function(object, member)
+{
+	for(var i = 0; i < this.field_list.length; i++)
+	{
+		if (this.field_list[i].object == object && this.field_list[i].member == member)
+		{
+			this.field_list.splice(i, 1);
+			return;
+		}
+	}
+}
+
+WindowTemplate.prototype.append = function(object, member)
+{
+	if (!this.contains(object, member))
+	{
+		this.field_list.push({"object": object, "member": member});
+		return true;
+	}
+	return false;
+}
+
+WindowTemplate.prototype.clear = function()
+{
+	this.field_list = [];
+}
+
+WindowTemplate.prototype.save = function()
+{
+	return {
+		id: this.id,
+		template_name: this.template_name,
+		field_list: this.field_list,
+		type_name: this.type_name
+	};
+}
+
 
 function RemoteEverything(base_url)
 {
-    this.base_url = base_url;
-    this.window_list = {};
-    this.data = {};
+	this.base_url = base_url;
+	this.objects = {};
+	this.window_list = [];
+
+	this.load();
+
+	window.addEventListener("storage", function(that)
+	{
+		return function(e)
+		{
+			if (e.key == "templates")
+			{
+				that.load(JSON.parse(e.newValue));
+
+				that.updateAllTemplates();
+			}
+		};
+	}(this));
+}
+
+RemoteEverything.prototype.load = function(data)
+{
+	this.templates = {};
+	if (data === undefined)
+	{
+		try
+		{
+			data = JSON.parse(localStorage.getItem("templates"));
+		}
+		catch(e)
+		{
+			data = {};
+		}
+	}
+
+	if (data === null)
+		return;
+
+	for(var i in data)
+	{
+		this.templates[i] = new WindowTemplate(this, data[i]);
+	}
+}
+
+RemoteEverything.prototype.save = function()
+{
+	var templates = {};
+	for(var i in this.templates)
+	{
+		templates[i] = this.templates[i].save();
+	}
+	localStorage.setItem("templates", JSON.stringify(templates));
+}
+
+RemoteEverything.prototype.updateAllTemplates = function()
+{
+	var deleted_windows = [];
+	for(var i in this.window_list)
+	{
+		if (this.window_list[i].template_id in this.templates)
+		{
+			this.window_list[i].onTemplateUpdated(this.templates[this.window_list[i].template_id]);
+		}
+		else
+		{
+			deleted_windows.push(this.window_list[i]);
+		}
+	}
+
+	for(var i in deleted_windows)
+	{
+		i.close();
+	}
 }
 
 RemoteEverything.prototype.refresh = function()
 {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", this.base_url + "/list", true);
-    xhr.onload = function(that)
-    {
-        return function(e)
-        {
-            var objectList = document.getElementById("object-list");
-            var listItems = objectList.getElementsByTagName("li");
+	var xhr = new XMLHttpRequest();
+	xhr.open("GET", this.base_url + "/list", true);
+	xhr.onload = function(that)
+	{
+		return function(e)
+		{
+			var objectList = document.getElementById("object-list");
+			newdata = JSON.parse(xhr.responseText).objects;
 
-            newdata = JSON.parse(xhr.responseText).objects;
+			for (var id in newdata)
+			{
+				if (that.objects[id] === undefined)
+				{
+					var listItem = document.createElement("li");
+					var listItemLink = document.createElement("a");
+					listItemLink.href = "";
+					listItemLink.onclick = function(id)
+						{
+							return function()
+							{
+								ProtoWindow(that, id);
+								return false;
+							}
+						}(id);
 
-            for(var i = 0; i < listItems.length; )
-            {
-                if (newdata[listItems[i].dataset.logicalId] === undefined)
-                    objectList.removeChild(listItems[i]);
-                else
-                    i++;
-            }
+					listItemLink.textContent = id;
+					listItem.appendChild(listItemLink);
+					objectList.appendChild(listItem);
+					that.objects[id] = listItem;
+				}
+			}
 
-            var listWindows = document.getElementsByClassName("data-window");
-            for(var i = 0; i < listWindows.length; )
-            {
-                if (newdata[listWindows[i].dataset.logicalId] === undefined)
-                    listWindows[i].parentNode.removeChild(listWindows[i]);
-                else
-                    i++;
-            }
-            
-            for(var id in newdata)
-            {
-                if (that.data[id] === undefined)
-                {
-                    var o = newdata[id];
-                    var listItem = document.createElement("li");
-                    listItem.dataset.logicalId = id;
-                    var listItemLink = document.createElement("a");
-                    listItemLink.href = "";
-                    listItemLink.onclick = function(id)
-                                        {
-                                            return function()
-                                            {
-                                                that.createWindow(id);
-                                                return false;
-                                            }
-                                        }(id);
-                    
-                    var listItemText = document.createTextNode(id);
-                    listItemLink.appendChild(listItemText);
-                    listItem.appendChild(listItemLink);
-                    objectList.appendChild(listItem);
-                }
-            }
+			var removed = [];
+			for (var id in that.objects)
+			{
+				if (newdata[id] === undefined)
+				{
+					removed.push(id);
+					objectList.removeChild(that.objects[id]);
+				}
+			}
+			for (var i = 0 ; i < removed.length ; i++)
+				delete that.objects[removed];
 
-            that.data = newdata;
+			for (var i = 0 ; i < that.window_list.length ; i++)
+			{
+				that.window_list[i].update(newdata);
+			}
 
-            var values = document.getElementsByClassName("data-field");
-            for(var i = 0; i < values.length; i++)
-            {
-                var id = values[i].dataset.logicalId;
-                var type = values[i].dataset.type;
-                var field = values[i].dataset.field;
-                $(values[i]).empty();
-                var value = that.data[id][type][field].value;
-                if (typeof(value) == "number")
-                {
-                    var unit = that.data[id][type][field].unit || "";
-                    var mult = 0;
+			that.refresh();
+		};
+	}(this);
 
-                    if (Math.abs(value) >= 1000)
-                    {
-                        while (Math.abs(value) >= 1000 && mult < 3)
-                        {
-                            value /= 1000;
-                            mult++;
-                        }
-                    }
-                    else if (Math.abs(value) < 1 && value != 0)
-                    {
-                        while (Math.abs(value) < 1 && mult > -3)
-                        {
-                            value *= 1000;
-                            mult--;
-                        }
-                    }
+	xhr.onerror = function(e)
+	{
+		$("#refresh-button").show();
+		alert("error");
+	};
 
-                    switch(mult)
-                    {
-                        case 1:
-                            unit = "k" + unit;
-                            break;
-                        case 2:
-                            unit = "M" + unit;
-                            break;
-                        case 3:
-                            unit = "G" + unit;
-                            break;
-                        case -1:
-                            unit = "m" + unit;
-                            break;
-                        case -2:
-                            unit = "µ" + unit;
-                            break;
-                        case -3:
-                            unit = "n" + unit;
-                            break;
-                    }
-
-                    var valueSpan = document.createElement("span");
-                    valueSpan.appendChild(document.createTextNode(value.toFixed(2)));
-                    valueSpan.classList.add("data-value");
-                    values[i].appendChild(valueSpan);
-
-                    var unitSpan = document.createElement("span");
-                    unitSpan.appendChild(document.createTextNode(unit));
-                    unitSpan.classList.add("data-value-unit");
-                    values[i].appendChild(unitSpan);
-                }
-                else if (value !== undefined)
-                {
-                    var valueSpan = document.createElement("span");
-                    valueSpan.appendChild(document.createTextNode(""+value));
-                    valueSpan.classList.add("data-value");
-                    values[i].appendChild(valueSpan);
-                }
-            }
-
-            var tables = document.getElementsByClassName("data-table");
-            for(var i = 0; i < tables.length; i++)
-            {
-                
-            }
-            
-            that.refresh();
-        };
-    }(this);
-
-    xhr.onerror = function(e)
-    {
-        $("#refresh-button").show();
-        alert("error");
-    };
-
-    xhr.send(null);
-    $("#refresh-button").hide();
+	xhr.send(null);
+	$("#refresh-button").hide();
 }
 
-RemoteEverything.prototype.createWindow = function(id)
+function ProtoWindow(re, logicalId)
 {
-    var w = new Window(document.body, "Data for " + id);
-    w.element.dataset.logicalId = id;
-    
-    var newItemDropdown = w.element.getElementsByClassName("new-item-selection")[0];
-    
-    for(var type in this.data[id])
-    {
-        for(var field in this.data[id][type])
-        {
-            var displayName = field;
+	templates = [];
+	for (var template in re.templates)
+	{
+		templates.push(re.templates[template]);
+	}
+	if (templates.length == 0)
+	{
+		var w = new Window(re, logicalId, new WindowTemplate(re));
+		w.edit(true);
+		return;
+	}
 
-            if (this.data[id][type][field].displayName !== undefined)
-                displayName = this.data[id][type][field].displayName;
-            dataset = { id: id, type: type, field: field, displayName: displayName };
+	var element = document.createElement("div");
+	element.classList.add("window", "proto-window");
+	for (var i = 0; i < templates.length; i++)
+	{
+		button = document.createElement("button");
+		button.textContent = templates[i].template_name;
+		element.appendChild(button);
+		button.onclick = function(template) {
+			return function() {
+				new Window(re, logicalId, template, element);
+			}
+		}(templates[i]);
+	}
 
-            w.addField(dataset);
+	var button = document.createElement("button");
+	button.classList.add("new-template");
+	button.textContent = "New";
+	element.appendChild(button);
+	button.onclick = function() {
+		var w = new Window(re, logicalId, new WindowTemplate(re), element);
+		w.edit(true);
+	}
 
-            var opt = document.createElement("option");
-            opt.appendChild(document.createTextNode(displayName));
-            opt.dataset.id = id;
-            opt.dataset.type = type;
-            opt.dataset.field = field;
-            opt.dataset.displayName = displayName;
-            newItemDropdown.appendChild(opt);
-        }
-    }
+	$(element).draggable({ stack: ".window" });
+	document.body.appendChild(element);
 }
 
-function Window(parent, title)
+function Window(re, logicalId, template, div)
 {
-    var that = this;
+	var that = this;
 
-    this.title = title;
-    this.element = document.createElement("div");
-    this.element.classList.add("window", "data-window");
+	this.logicalId = logicalId;
+	this.re = re;
+	this.template = template;
+	if (div == undefined)
+	{
+		this.element = document.createElement("div");
+		document.body.appendChild(this.element);
+	}
+	else
+	{
+		this.element = div;
+	}
+	this.fields = {};
+	this.template_id = template.id;
 
-    this.element.innerHTML = '<h1>' +
-        '<span class="window-title"></span>' +
-        '<span class="edit-button" title="edit">E</span>' +
-        '<span class="close-button" title="close">X</span>' +
-        '</h1>' +
-        '<div class="window-content">' +
-        '<table><tbody class="data-table"></tbody></table>' +
-        '<select class="new-item-selection"></select><button class="new-item-button">+</button>'
-        '</div>';
+	this.element.className = "window data-window";
 
-    this.element.getElementsByClassName("window-title")[0].appendChild(document.createTextNode(title));
-    this.element.getElementsByClassName("close-button")[0].onclick = function() { that.close(); };
-    this.element.getElementsByClassName("edit-button")[0].onclick = function() { that.edit(); };
-    this.element.getElementsByClassName("new-item-button")[0].onclick = function() { that.addField(that.element.getElementsByClassName("new-item-selection")[0].selectedOptions[0].dataset); };
+	re.window_list.push(this);
 
-    parent.appendChild(this.element);
+	this.element.innerHTML = '<h1>' +
+		'<span class="window-title">'+
+		'<span class="template-name"></span><input type="text" class="template-name"> <span class="logical-id"></span></span>' +
+		'<span class="edit-button" title="edit">E</span>' +
+		'<span class="close-button" title="close">X</span>' +
+		'</h1>' +
+		'<div class="window-content">' +
+		'<table><tbody class="data-table"></tbody></table>' +
+		'<div class="new-item"><select></select><button>+</button></div>' +
+		'</div>';
 
-    this.content = this.element.getElementsByClassName("window-content")[0];
-    this.tbody = this.element.getElementsByTagName("tbody")[0];
-    $(this.tbody).sortable({axis: "y"}).sortable("disable");
-    $(this.tbody).disableSelection();
+	this.template_name_span = this.element.getElementsByClassName("template-name")[0];
+	this.template_name = this.element.getElementsByClassName("template-name")[1];
+	this.element.getElementsByClassName("logical-id")[0].textContent = "(" + logicalId + ")";
+	this.element.getElementsByClassName("close-button")[0].onclick = function() { that.close(); };
+	this.element.getElementsByClassName("edit-button")[0].onclick = function() { that.edit(); };
 
-    $(this.element).draggable({ stack: ".window" });
-    $(this.element).on("sortupdate", function() { that.save(); });
+	this.tbody = this.element.getElementsByTagName("tbody")[0];
+	$(this.tbody).sortable({axis: "y"}).sortable("disable");
+	$(this.tbody).disableSelection();
+
+	$(this.element).draggable({ stack: ".window" });
+
+	var addDiv = this.element.getElementsByClassName("new-item")[0];
+	this.add_select = addDiv.getElementsByTagName("select")[0];
+	addDiv.getElementsByTagName("button")[0].onclick = function(){
+		var option = that.add_select.selectedOptions[0];
+		if (template.append(option.dataset.type, option.dataset.field))
+			that.onTemplateUpdated(template);
+	};
+
+	this.onTemplateUpdated(template);
 }
 
-Window.prototype.edit = function()
+Window.prototype.onTemplateUpdated = function(template)
 {
-    this.element.classList.toggle("window-editing");
-    if (this.element.classList.contains("window-editing"))
-    {
-        $(this.tbody).sortable("enable");
-    }
-    else
-    {
-        $(this.tbody).sortable("disable");
-    }
+	this.template = template;
+	this.template_name.value = template.template_name;
+	this.template_name_span.textContent = template.template_name;
+
+	this.fields = {};
+	this.tbody.innerHTML = "";
+
+	for (var i = 0 ; i < template.field_list.length ; i++)
+	{
+		var field = template.field_list[i];
+		if (this.fields[field.object] == undefined)
+		{
+			this.fields[field.object] = {};
+		}
+		var dataField = new DataField(this, field);
+		this.fields[field.object][field.member] = dataField;
+		this.tbody.appendChild(dataField.tr);
+	}
 }
 
-Window.prototype.save = function()
+Window.prototype.update = function(items)
 {
-    console.log("save");
-    // TODO: enregistrer dans localStorage
+	var logicalObject = items[this.logicalId];
+	if (logicalObject == undefined)
+		return;
+	for (var i = 0 ; i < this.template.field_list.length ; i++)
+	{
+		var field = this.template.field_list[i];
+		var object = logicalObject[field.object];
+		if (object == undefined)
+			continue;
+		var member = object[field.member];
+		if (member == undefined)
+			continue;
+		this.fields[field.object][field.member].update(member);
+	}
+
+	if (this.add_select.children.length == 0)
+	{
+		for(var type in logicalObject)
+		{
+			for(var field in logicalObject[type])
+			{
+				var displayName = field;
+
+				if (logicalObject[type][field].displayName !== undefined)
+					displayName = logicalObject[type][field].displayName;
+
+				var opt = document.createElement("option");
+				opt.textContent = displayName;
+				opt.dataset.type = type;
+				opt.dataset.field = field;
+				opt.dataset.displayName = displayName;
+				this.add_select.appendChild(opt);
+			}
+		}
+	}
 }
 
-Window.prototype.addField = function(dataset)
+Window.prototype.edit = function(focus)
 {
-    var tr = document.createElement("tr");
-    var td1 = document.createElement("td");
-    var td2 = document.createElement("td");
-    var td3 = document.createElement("td");
-
-    td1.classList.add("delete-field");
-    td1.appendChild(document.createTextNode("D"));
-    td1.onclick = function(tbody, tr, w)
-    {
-        return function()
-        {
-            tbody.removeChild(tr);
-            w.save();
-        };
-    }(this.tbody, tr, this);
-
-    var displayName = dataset.displayName;
-
-    td2.appendChild(document.createTextNode(displayName));
-
-    td3.classList.add("data-field");
-    td3.dataset.logicalId = dataset.id;
-    td3.dataset.type = dataset.type;
-    td3.dataset.field = dataset.field;
-
-    tr.appendChild(td1);
-    tr.appendChild(td2);
-    tr.appendChild(td3);
-    this.tbody.appendChild(tr);
+	this.element.classList.toggle("window-editing");
+	if (this.element.classList.contains("window-editing"))
+	{
+		$(this.tbody).sortable("enable");
+		this.add_select.innerHTML = "";
+		if (focus)
+			this.template_name.focus();
+	}
+	else
+	{
+		$(this.tbody).sortable("disable");
+		var dataFields = this.tbody.getElementsByTagName("tr");
+		this.template.clear();
+		for (var i = 0 ; i < dataFields.length ; i++)
+		{
+			this.template.append(dataFields[i].dataset.object, dataFields[i].dataset.member);
+		}
+		this.template.template_name = this.template_name.value;
+		this.re.save();
+		this.re.updateAllTemplates();
+	}
 }
-
 
 Window.prototype.close = function()
 {
-    this.element.parentNode.removeChild(this.element);
+	this.re.window_list.splice(this.re.window_list.indexOf(this), 1);
+	this.element.parentNode.removeChild(this.element);
 }
+
+function DataField(parentWindow, field)
+{
+	this.tr = document.createElement("tr");
+	this.tr.dataset.object = field.object;
+	this.tr.dataset.member = field.member;
+	this.delete_cell = document.createElement("td");
+	this.name_cell = document.createElement("td");
+	this.value_cell = document.createElement("td");
+	this.value_data = document.createElement("span");
+	this.value_unit = document.createElement("span");
+
+	this.delete_cell.classList.add("delete-field");
+	this.delete_cell.textContent = "D";
+	this.delete_cell.onclick = function(tr)
+	{
+		return function()
+		{
+			parentWindow.template.remove(field.object, field.member);
+			parentWindow.tbody.removeChild(tr);
+			delete parentWindow.fields[field.object][field.member]
+		};
+	}(this.tr);
+
+	this.value_cell.classList.add("data-field");
+	this.value_data.classList.add("data-value");
+	this.value_unit.classList.add("data-value-unit");
+
+	this.tr.appendChild(this.delete_cell);
+	this.tr.appendChild(this.name_cell);
+	this.tr.appendChild(this.value_cell);
+	this.value_cell.appendChild(this.value_data);
+	this.value_cell.appendChild(this.value_unit);
+}
+
+DataField.SIprefix = function(value, unit)
+{
+	if (unit == "")
+	{
+		return [value.toPrecision(4), ""];
+	}
+	var mult = 0;
+
+	while (Math.abs(value) >= 1000 && mult < 5)
+	{
+		value /= 1000;
+		mult++;
+	}
+
+	while (Math.abs(value) < 1 && mult > -5)
+	{
+		value *= 1000;
+		mult--;
+	}
+
+	var value_str = value.toFixed(2);
+	switch(mult)
+	{
+		case -5:
+			return [value_str, "f" + unit];
+		case -4:
+			return [value_str, "p" + unit];
+		case -3:
+			return [value_str, "n" + unit];
+		case -2:
+			return [value_str, "µ" + unit];
+		case -1:
+			return [value_str, "m" + unit];
+		case 1:
+			return [value_str, "k" + unit];
+		case 2:
+			return [value_str, "M" + unit];
+		case 3:
+			return [value_str, "G" + unit];
+		case 4:
+			return [value_str, "T" + unit];
+		case 5:
+			return [value_str, "P" + unit];
+		default:
+			return [value_str, unit];
+	}
+}
+
+DataField.prototype.update = function(item)
+{
+	var value = item.value;
+
+	this.name_cell.textContent = item.displayName;
+	if (typeof(value) == "number")
+	{
+		var unit = item.unit || "";
+
+		var value_str = DataField.SIprefix(value, unit);
+		this.value_data.textContent = value_str[0];
+		this.value_unit.textContent = value_str[1];
+		this.value_unit.style.display = "";
+	}
+	else if (value !== undefined)
+	{
+		this.value_data.textContent = value;
+		this.value_unit.style.display = "none";
+	}
+}
+
 
 var ol = new RemoteEverything("http://" + window.location.hostname + ":8080");
 ol.refresh();

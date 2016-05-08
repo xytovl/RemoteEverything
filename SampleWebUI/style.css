@@ -26,7 +26,8 @@ header {
 .window,
 a,
 .close-button,
-.edit-button
+.edit-button,
+button
 {
 	text-decoration: none;
 	color: #ffffff;
@@ -38,12 +39,19 @@ a,
 	margin: 5px;
 }
 
-.window h1 {
+.window h1
+{
 	color: #ffd100;
 	padding: 0.5em;
 	margin: 0;
 	font-size: 1em;
 	cursor: move;
+}
+
+h1 input:enabled
+{
+	color: #000;
+	background: #a0a0a0;
 }
 
 .window
@@ -53,7 +61,8 @@ a,
 	overflow-y: auto;
 }
 
-a
+a,
+button
 {
 	display: inline-block;
 	padding: 6px;
@@ -62,7 +71,8 @@ a
 }
 
 .window,
-a
+a,
+button
 {
 	border-radius: 6px;
 	border: 1px solid;
@@ -70,6 +80,23 @@ a
 	border-right-color: #3b4049;
 	border-top-color: #a5acb7;
 	border-left-color: #989eac;
+}
+
+input.template-name
+{
+	padding: 6px;
+	border-radius: 6px;
+	border: 1px solid;
+	border-top-color: #1d2028;
+	border-left-color: #3b4049;
+	border-bottom-color: #a5acb7;
+	border-right-color: #989eac;
+}
+
+.window-editing span.template-name,
+.window:not(.window-editing) input.template-name
+{
+	display:none;
 }
 
 .close-button,
@@ -88,19 +115,22 @@ a
 	cursor: default;
 }
 
-.window p {
+.new-template
+{
+	margin-top: 1em;
+}
+
+.window ul
+{
 	margin: 0.5em;
 }
 
-.window ul {
-	margin: 0.5em;
-}
-
-.window:not(.window-editing) .new-item-selection, .window:not(.window-editing) .new-item-button, .window:not(.window-editing) .delete-field {
+.window:not(.window-editing) .new-item,
+.window:not(.window-editing) .delete-field {
 	display: none;
 }
 
-.new-item-button {
+.new-item button {
 	margin-left: 0.3em;
 }
 
@@ -114,6 +144,8 @@ ul
 	list-style-type: none;
 	padding: 0;
 }
+
+.proto-window button,
 li
 {
 	display: block;
