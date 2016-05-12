@@ -100,7 +100,8 @@ input.template-name
 }
 
 .close-button,
-.edit-button
+.edit-button,
+a
 {
 	cursor: pointer;
 }
@@ -145,13 +146,13 @@ ul
 	padding: 0;
 }
 
-.proto-window a,
 #object-list a
 {
 	display: block;
 }
 
-.window h1
+.window h1,
+.template-select
 {
 	display: flex;
 }
@@ -162,7 +163,8 @@ ul
 	margin-bottom: 5px;
 }
 
-.window-title
+.window-title,
+.template-select a:first-child
 {
 	flex-grow: 1;
 }

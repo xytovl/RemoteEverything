@@ -154,7 +154,7 @@ RemoteEverything.prototype.updateAllTemplates = function()
 
 	for(var i in deleted_windows)
 	{
-		i.close();
+		deleted_windows[i].close();
 	}
 }
 
@@ -256,16 +256,39 @@ function ProtoWindow(re, logicalId)
 
 	var element = document.createElement("div");
 	element.classList.add("window", "proto-window");
+
+	var h1 = document.createElement("h1");
+	element.appendChild(h1);
+	h1.textContent = "Select window settings";
+
 	for (var i = 0; i < templates.length; i++)
 	{
+		div = document.createElement("div");
+		div.className = "template-select";
+		element.appendChild(div)
 		button = document.createElement("a");
 		button.textContent = templates[i].template_name;
-		element.appendChild(button);
+		div.appendChild(button);
 		button.onclick = function(template) {
 			return function() {
 				new Window(re, logicalId, template, element);
 			}
 		}(templates[i]);
+		var del = document.createElement("a");
+		del.textContent = "X";
+		del.onclick = function(div, id)
+		{
+			return function() {
+				if (confirm("Delete settings " + re.templates[id].template_name + "?"))
+				{
+					delete re.templates[id];
+					element.removeChild(div);
+					re.updateAllTemplates();
+				}
+				return false;
+			}
+		}(div, templates[i].id);
+		div.appendChild(del)
 	}
 
 	var button = document.createElement("a");
@@ -341,7 +364,8 @@ function Window(re, logicalId, template, div)
 Window.prototype.onTemplateUpdated = function(template)
 {
 	this.template = template;
-	this.template_name.value = template.template_name;
+	if (! this.element.classList.contains("window-editing"))
+		this.template_name.value = template.template_name;
 	this.template_name_span.textContent = template.template_name;
 
 	this.fields = {};
