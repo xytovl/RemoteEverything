@@ -25,6 +25,11 @@ namespace RemoteEverything
 					var c = request.InputStream.ReadByte();
 					if (c == -1 || c == '&') // store the last value
 					{
+						if (current.Length == 0)
+							return;
+						#if DEBUG
+						Debug.Log("parsing data fragment " + current.ToString());
+						#endif
 						var components = current.ToString().Split('=');
 						components[0] = Uri.UnescapeDataString(components[0]);
 						PerObjectParams values;

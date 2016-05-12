@@ -160,8 +160,21 @@ RemoteEverything.prototype.updateAllTemplates = function()
 
 RemoteEverything.prototype.refresh = function()
 {
+	var formData = "";
+	for (var i in this.window_list)
+	{
+		var w = this.window_list[i];
+		for (var f = 0 ; f < w.template.field_list.length ; f++)
+		{
+			if (formData.length != 0)
+				formData += "&";
+			var field = w.template.field_list[f];
+			formData += w.logicalId + "=";
+			formData += field.object + ";" + field.member;
+		}
+	}
 	var xhr = new XMLHttpRequest();
-	xhr.open("GET", this.base_url + "/list", true);
+	xhr.open("POST", this.base_url + "/list", true);
 	xhr.onload = function(that)
 	{
 		return function(e)
@@ -219,7 +232,7 @@ RemoteEverything.prototype.refresh = function()
 		alert("error");
 	};
 
-	xhr.send(null);
+	xhr.send(formData);
 	$("#refresh-button").hide();
 }
 
