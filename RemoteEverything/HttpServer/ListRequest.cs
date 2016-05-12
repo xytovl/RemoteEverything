@@ -103,6 +103,14 @@ namespace RemoteEverything
 				(obj, logicalId) =>	GetOrCreate(objects, logicalId).Add(obj.GetType().FullName, BuildObjectDescription(obj, param.TryGet(logicalId))));
 			var result = new Json.Object();
 			result.Add("objects", new Json.Object(objects));
+
+			var idMapping = new Dictionary<string, Json.Node>();
+			foreach (var kv in RemotableContainer.Instance.logicalIdNames)
+			{
+				idMapping.Add(kv.Key, new Json.String(kv.Value));
+			}
+			result.Add("objectNames", new Json.Object(idMapping));
+
 			result.Write(stream);
 		}
 

@@ -180,7 +180,8 @@ RemoteEverything.prototype.refresh = function()
 		return function(e)
 		{
 			var objectList = document.getElementById("object-list");
-			newdata = JSON.parse(xhr.responseText).objects;
+			var response = JSON.parse(xhr.responseText);
+			var newdata = response.objects;
 
 			for (var id in newdata)
 			{
@@ -198,7 +199,10 @@ RemoteEverything.prototype.refresh = function()
 							}
 						}(id);
 
-					listItemLink.textContent = id;
+					if (response.objectNames[id] == undefined)
+						listItemLink.textContent = id;
+					else
+						listItemLink.textContent = response.objectNames[id];
 					listItem.appendChild(listItemLink);
 					objectList.appendChild(listItem);
 					that.objects[id] = listItem;
@@ -219,7 +223,7 @@ RemoteEverything.prototype.refresh = function()
 
 			for (var i = 0 ; i < that.window_list.length ; i++)
 			{
-				that.window_list[i].update(newdata);
+				that.window_list[i].update(response);
 			}
 
 			that.refresh();
@@ -302,7 +306,7 @@ function Window(re, logicalId, template, div)
 
 	this.element.innerHTML = '<h1>' +
 		'<span class="window-title">'+
-		'<span class="template-name"></span><input type="text" class="template-name"> <span class="logical-id"></span></span>' +
+		'<span class="template-name"></span><input type="text" class="template-name"> (<span class="object-name"></span>)</span>' +
 		'<span class="edit-button" title="edit">E</span>' +
 		'<span class="close-button" title="close">X</span>' +
 		'</h1>' +
@@ -313,7 +317,7 @@ function Window(re, logicalId, template, div)
 
 	this.template_name_span = this.element.getElementsByClassName("template-name")[0];
 	this.template_name = this.element.getElementsByClassName("template-name")[1];
-	this.element.getElementsByClassName("logical-id")[0].textContent = "(" + logicalId + ")";
+	this.object_name = this.element.getElementsByClassName("object-name")[0];
 	this.element.getElementsByClassName("close-button")[0].onclick = function() { that.close(); };
 	this.element.getElementsByClassName("edit-button")[0].onclick = function() { that.edit(); };
 
@@ -356,11 +360,17 @@ Window.prototype.onTemplateUpdated = function(template)
 	}
 }
 
-Window.prototype.update = function(items)
+Window.prototype.update = function(response)
 {
-	var logicalObject = items[this.logicalId];
+	var logicalObject = response.objects[this.logicalId];
 	if (logicalObject == undefined)
 		return;
+	var objectName = response.objectNames[this.logicalId];
+	if (objectName == undefined)
+		this.object_name.textContent = this.logicalId;
+	else
+		this.object_name.textContent = objectName;
+
 	for (var i = 0 ; i < this.template.field_list.length ; i++)
 	{
 		var field = this.template.field_list[i];

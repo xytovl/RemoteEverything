@@ -21,8 +21,11 @@ namespace RemoteEverything
 		private static RemotableContainer _instance;
 
 		private readonly Dictionary<string, Dictionary<Type, WeakReference>> remotableInstances = new Dictionary<string, Dictionary<Type, WeakReference>>();
+		private readonly Dictionary<string, string> logicalIdNames_ = new Dictionary<string,string>();
 
-		public void Register(object remotable, string logicalId)
+		public Dictionary<string, string> logicalIdNames { get { return new Dictionary<string,string>(logicalIdNames_);}}
+
+		public void Register(object remotable, string logicalId, Dictionary<string, object> moreInfo)
 		{
 			if (remotable == null)
 				throw new ArgumentNullException("remotable", "null can not be registered as remotable");
@@ -33,6 +36,13 @@ namespace RemoteEverything
 				Dictionary<Type, WeakReference> registeredTypes;
 				if (remotableInstances.TryGetValue(logicalId, out registeredTypes))
 				{
+					object logicalIdName;
+					if (moreInfo.TryGetValue("LogicalIdName", out logicalIdName))
+					{
+						string str = logicalIdName as string;
+						if (str != null)
+							logicalIdNames_[logicalId] = str;
+					}
 					WeakReference target;
 					if (registeredTypes.TryGetValue(type, out target))
 					{
@@ -94,6 +104,7 @@ namespace RemoteEverything
 			}
 		}
 
+
 		void cleanup()
 		{
 			lock(remotableInstances)
@@ -106,8 +117,11 @@ namespace RemoteEverything
 					if (perLogicalId.Value.Count == 0)
 						emptyLogicalIds.Add(perLogicalId.Key);
 				}
-			foreach (var id in emptyLogicalIds)
-				remotableInstances.Remove(id);
+				foreach (var id in emptyLogicalIds)
+				{
+					remotableInstances.Remove(id);
+					logicalIdNames_.Remove(id);
+				}
 			}
 		}
 	}
