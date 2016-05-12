@@ -145,8 +145,24 @@ ul
 	padding: 0;
 }
 
-.proto-window button,
-li
+.proto-window a,
+#object-list a
 {
 	display: block;
+}
+
+.window h1
+{
+	display: flex;
+}
+
+.window h1> *
+{
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+.window-title
+{
+	flex-grow: 1;
 }

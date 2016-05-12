@@ -258,7 +258,7 @@ function ProtoWindow(re, logicalId)
 	element.classList.add("window", "proto-window");
 	for (var i = 0; i < templates.length; i++)
 	{
-		button = document.createElement("button");
+		button = document.createElement("a");
 		button.textContent = templates[i].template_name;
 		element.appendChild(button);
 		button.onclick = function(template) {
@@ -268,7 +268,7 @@ function ProtoWindow(re, logicalId)
 		}(templates[i]);
 	}
 
-	var button = document.createElement("button");
+	var button = document.createElement("a");
 	button.classList.add("new-template");
 	button.textContent = "New";
 	element.appendChild(button);
