@@ -404,7 +404,8 @@ Window.prototype.update = function(response)
 		var member = object[field.member];
 		if (member == undefined)
 			continue;
-		this.fields[field.object][field.member].update(member);
+		if (this.fields[field.object] != undefined && this.fields[field.object][field.member] != undefined)
+			this.fields[field.object][field.member].update(member);
 	}
 
 	if (this.add_select.children.length == 0)
